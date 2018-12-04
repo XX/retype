@@ -9,4 +9,6 @@ proc-macro = true
 
 [dependencies]
 quote = "0.6.10"
-syn = "0.15.22"
+syn = { version = "0.15.22", features = ["full", "extra-traits"] }
+toml = "0.4.9"
+lazy_static = "1.2.0"
