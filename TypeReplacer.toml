@@ -1,0 +1,3 @@
+["cfg(test)"]
+FooBar = "f32"
+FooBarGen = "std::sync::Arc<T>"

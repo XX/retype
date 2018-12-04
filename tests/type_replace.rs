@@ -1,5 +1,8 @@
 extern crate type_replacer;
 
+use std::sync::Arc;
+use type_replacer::replace;
+
 #[replace(FooBar)]
 type Bar = i32;
 
@@ -17,23 +20,21 @@ struct FooGen<T> {
 #[test]
 fn usage() {
     let a = Foo {
-        field: 1.into(),
+        field: 1.0,
     };
 
     let b = Foo {
-        field: 2.into(),
+        field: 2.0,
     };
 
     let res = a.field + b.field;
-    let exp: Bar = (1 + 2).into();
+    assert_eq!(3.0, res);
 
-    assert_eq!(exp, res);
-
-    let a = FooGen {
+    let mut a = FooGen {
         field: BarGen::new(42),
     };
+    a.field = Arc::new(42);
 
     let res = *a.field.as_ref();
-
     assert_eq!(42, res);
 }
