@@ -1,8 +1,4 @@
 extern crate proc_macro;
-extern crate syn;
-extern crate quote;
-extern crate toml;
-extern crate lazy_static;
 
 use std::env;
 use std::fs::File;
