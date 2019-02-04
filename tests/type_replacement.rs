@@ -15,6 +15,13 @@ struct FooGen<T> {
     field: BarGen<T>,
 }
 
+#[retype(FooDefaultBaz)]
+type Baz = i32;
+
+struct FooDefault {
+    field: Baz,
+}
+
 #[test]
 fn usage() {
     let a = Foo {
@@ -25,8 +32,15 @@ fn usage() {
         field: 2.0,
     };
 
+    let c = FooDefault {
+        field: 3,
+    };
+
     let res = a.field + b.field;
     assert_eq!(3.0, res);
+
+    let res: i32 = c.field;
+    assert_eq!(3, res);
 
     let mut a = FooGen {
         field: BarGen::new(42),

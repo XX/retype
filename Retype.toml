@@ -1,3 +1,7 @@
 ["cfg(test)"]
 FooBar = "f32"
 FooBarGen = "std::sync::Arc<T>"
+# FooDefaultBaz will be used the default value
+
+["cfg(not(test))"]
+# default values will be used in this case

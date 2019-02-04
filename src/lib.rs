@@ -36,13 +36,13 @@ lazy_static! {
 #[proc_macro_attribute]
 pub fn retype(attr: TokenStream, item: TokenStream) -> TokenStream {
     let type_item = syn::parse::<ItemType>(item)
-        .expect("Replace attribute can only be applied to type item");
+        .expect("Retype attribute can only be applied to type item");
     let ident = syn::parse::<Ident>(attr)
-        .expect("Replace attribute must use ident param")
+        .expect("Retype attribute must use ident param")
         .to_string();
 
     let attrs = CONFIG.as_table()
-        .expect("Replace config must contain a table");
+        .expect("Retype config must contain a table");
 
     let mut new_type_item = type_item.clone();
     let mut items = Vec::new();
@@ -53,18 +53,22 @@ pub fn retype(attr: TokenStream, item: TokenStream) -> TokenStream {
                 .expect(&format!("Can't parse `{}` as token stream", attr))
             ).expect(&format!("Can't parse `{}` as attribute meta", attr));
 
-        if let Some(value) = value.as_table()
-            .and_then(|table| table.get(&ident))
+        match value.as_table().and_then(|table| table.get(&ident))
         {
-            let replacement = value.as_str()
-                .expect(&format!("Can't parse replacement value `{:?}` as string", value));
-            let new_type = syn::parse::<Type>(
-                TokenStream::from_str(replacement)
-                    .expect(&format!("Can't parse replacement value `{}` as token stream", replacement))
+            Some(value) => {
+                let replacement = value.as_str()
+                    .expect(&format!("Can't parse replacement value `{:?}` as string", value));
+                let new_type = syn::parse::<Type>(
+                    TokenStream::from_str(replacement)
+                        .expect(&format!("Can't parse replacement value `{}` as token stream", replacement))
                 ).expect(&format!("Can't parse replacement value `{}` as type", replacement));
 
-            new_type_item.ty = Box::new(new_type);
-            items.push(quote! { #[#attr] #new_type_item });
+                new_type_item.ty = Box::new(new_type);
+                items.push(quote! { #[#attr] #new_type_item });
+            },
+            None => {
+                items.push(quote! { #[#attr] #type_item });
+            },
         }
     }
 
