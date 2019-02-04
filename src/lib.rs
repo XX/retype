@@ -12,21 +12,61 @@ use lazy_static::lazy_static;
 use toml::Value as TomlValue;
 
 static CONFIG_FILE: &'static str = "Retype.toml";
+static CONFIG_ENV_VAR: &'static str = "RETYPE_CONFIG";
 
 lazy_static! {
     static ref CONFIG: TomlValue = {
-        let path = env::var("RETYPE_CONFIG").unwrap_or_else(|_| CONFIG_FILE.to_string());
 
-        let mut file = File::open(&path)
-            .expect(&format!("Can't find `{}` file", path));
+        let first = File::open(CONFIG_FILE).ok().map(|mut file| {
+            let mut content = String::new();
+            file.read_to_string(&mut content)
+                .expect(&format!("Can't read content from `{}` file", CONFIG_FILE));
 
-        let mut content = String::new();
-        file.read_to_string(&mut content)
-            .expect(&format!("Can't read content from `{}` file", path));
+            content.parse::<TomlValue>()
+                .expect(&format!("Can't parse content of `{}` file as Toml", CONFIG_FILE))
+        });
 
-        content.parse::<TomlValue>()
-            .expect(&format!("Can't parse content of `{}` file as Toml", path))
+        let second = env::var(CONFIG_ENV_VAR).ok().map(|path| {
+            let mut file = File::open(&path)
+                .expect(&format!("Can't find `{}` file", path));
+
+            let mut content = String::new();
+            file.read_to_string(&mut content)
+                .expect(&format!("Can't read content from `{}` file", path));
+
+            content.parse::<TomlValue>()
+                .expect(&format!("Can't parse content of `{}` file as Toml", path))
+        });
+
+        match (first, second) {
+            (Some(mut first), Some(second)) => {
+                merge_toml(&mut first, second);
+                first
+            },
+            (Some(first), None) => first,
+            (None, Some(second)) => second,
+            (None, None) => panic!("Can't find `{}` file or `{}` env variable", CONFIG_FILE, CONFIG_ENV_VAR)
+        }
     };
+}
+
+pub(crate) fn merge_toml(first: &mut TomlValue, second: TomlValue) {
+    if first.is_table() && second.is_table() {
+        if let TomlValue::Table(table) = second {
+            for (key, value) in table.into_iter() {
+                first.as_table_mut()
+                    .map(|table| {
+                        if let Some(first_value) = table.get_mut(&key) {
+                            merge_toml(first_value, value);
+                        } else {
+                            table.insert(key, value);
+                        }
+                    });
+            }
+        }
+    } else {
+        *first = second;
+    }
 }
 
 #[proc_macro_attribute]
@@ -49,8 +89,7 @@ pub fn retype(attr: TokenStream, item: TokenStream) -> TokenStream {
                 .expect(&format!("Can't parse `{}` as token stream", attr))
             ).expect(&format!("Can't parse `{}` as attribute meta", attr));
 
-        match value.as_table().and_then(|table| table.get(&ident))
-        {
+        match value.as_table().and_then(|table| table.get(&ident)) {
             Some(value) => {
                 let replacement = value.as_str()
                     .expect(&format!("Can't parse replacement value `{:?}` as string", value));
@@ -73,4 +112,31 @@ pub fn retype(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     quote!(#(#items)*).into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn merge() {
+        let cases = [
+            ("key = 2", "key = 42", "key = 42"),
+            ("key = 2\narr = [1]", "arr = [1, 2]", "key = 2\narr = [1, 2]"),
+            ("[test]\na = 1\nb = 2", "", "[test]\na = 1\nb = 2"),
+            ("[test]\na = 1\nb = 2", "[test]", "[test]\na = 1\nb = 2"),
+            ("[test]\na = 1\nb = 2", "[test]\na = 3", "[test]\na = 3\nb = 2"),
+            ("[test]\na = 1", "[test]\na = 3\nb = 2", "[test]\na = 3\nb = 2"),
+            ("[test]\nb = 1", "[test]\na = 3\nb = 2", "[test]\na = 3\nb = 2"),
+            ("[test]\na = 1\n[other]\nb = 2", "[test]\na = 3\nb = 1", "[test]\na = 3\nb = 1\n[other]\nb = 2"),
+        ];
+        for (first, second, merged) in cases.iter() {
+            let mut first = first.parse::<TomlValue>().unwrap();
+            let second = second.parse::<TomlValue>().unwrap();
+            let merged = merged.parse::<TomlValue>().unwrap();
+
+            merge_toml(&mut first, second);
+            assert_eq!(merged, first);
+        }
+    }
 }
