@@ -1,16 +1,14 @@
-extern crate type_replacer;
-
 use std::sync::Arc;
-use type_replacer::replace;
+use retype::retype;
 
-#[replace(FooBar)]
+#[retype(FooBar)]
 type Bar = i32;
 
 struct Foo {
     field: Bar,
 }
 
-#[replace(FooBarGen)]
+#[retype(FooBarGen)]
 type BarGen<T> = std::rc::Rc<T>;
 
 struct FooGen<T> {

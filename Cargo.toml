@@ -1,6 +1,6 @@
 [package]
-name = "type_replacer"
-version = "0.1.0"
+name = "retype"
+version = "0.2.0"
 authors = ["Alexander Mescheryakov <freecoder.xx@gmail.com>"]
 edition = "2018"
 
@@ -8,7 +8,7 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-quote = "0.6.10"
-syn = { version = "0.15.22", features = ["full", "extra-traits"] }
-toml = "0.4.9"
+quote = "0.6.11"
+syn = { version = "0.15.26", features = ["full", "extra-traits"] }
+toml = "0.4.10"
 lazy_static = "1.2.0"

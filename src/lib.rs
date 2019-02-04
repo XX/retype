@@ -15,7 +15,7 @@ use quote::quote;
 use lazy_static::lazy_static;
 use toml::Value as TomlValue;
 
-static CONFIG_FILE: &'static str = "TypeReplacer.toml";
+static CONFIG_FILE: &'static str = "Retype.toml";
 
 lazy_static! {
     static ref CONFIG: TomlValue = {
@@ -34,7 +34,7 @@ lazy_static! {
 }
 
 #[proc_macro_attribute]
-pub fn replace(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn retype(attr: TokenStream, item: TokenStream) -> TokenStream {
     let type_item = syn::parse::<ItemType>(item)
         .expect("Replace attribute can only be applied to type item");
     let ident = syn::parse::<Ident>(attr)
