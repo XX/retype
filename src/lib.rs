@@ -4,6 +4,7 @@ extern crate quote;
 extern crate toml;
 extern crate lazy_static;
 
+use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::str::FromStr;
@@ -18,15 +19,17 @@ static CONFIG_FILE: &'static str = "TypeReplacer.toml";
 
 lazy_static! {
     static ref CONFIG: TomlValue = {
-        let mut file = File::open(CONFIG_FILE)
-            .expect(&format!("Can't find `{}` file", CONFIG_FILE));
+        let path = env::var("RETYPE_CONFIG").unwrap_or_else(|_| CONFIG_FILE.to_string());
+
+        let mut file = File::open(&path)
+            .expect(&format!("Can't find `{}` file", path));
 
         let mut content = String::new();
         file.read_to_string(&mut content)
-            .expect(&format!("Can't read content from `{}` file", CONFIG_FILE));
+            .expect(&format!("Can't read content from `{}` file", path));
 
         content.parse::<TomlValue>()
-            .expect(&format!("Can't parse content of `{}` file as Toml", CONFIG_FILE))
+            .expect(&format!("Can't parse content of `{}` file as Toml", path))
     };
 }
 
